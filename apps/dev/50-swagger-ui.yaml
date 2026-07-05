@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-dev-swagger-ui
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
+    targetRevision: "fix/k8s-minikube-yas-deploy"
+    path: "k8s/charts/swagger-ui"
+    helm:
+      parameters:
+        - name: "ingress.enabled"
+          value: "true"
+        - name: "ingress.className"
+          value: "nginx"
+        - name: "ingress.host"
+          value: "api.dev.yas.local.com"
+          forceString: true
+        - name: "ingress.hosts[0].host"
+          value: "api.dev.yas.local.com"
+          forceString: true
+        - name: "ingress.hosts[0].paths[0].path"
+          value: "/swagger-ui"
+          forceString: true
+        - name: "ingress.hosts[0].paths[0].pathType"
+          value: "ImplementationSpecific"
+        - name: "urls"
+          value: "[{ url: 'http://api.dev.yas.local.com/product/v3/api-docs', name: 'Product' }, { url: 'http://api.dev.yas.local.com/media/v3/api-docs', name: 'Media' }, { url: 'http://api.dev.yas.local.com/customer/v3/api-docs', name: 'Customer' }, { url: 'http://api.dev.yas.local.com/cart/v3/api-docs', name: 'Cart' }, { url: 'http://api.dev.yas.local.com/order/v3/api-docs', name: 'Order' }, { url: 'http://api.dev.yas.local.com/inventory/v3/api-docs', name: 'Inventory' }, { url: 'http://api.dev.yas.local.com/tax/v3/api-docs', name: 'Tax' }, { url: 'http://api.dev.yas.local.com/search/v3/api-docs', name: 'Search' }]"
+          forceString: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "yas-dev"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

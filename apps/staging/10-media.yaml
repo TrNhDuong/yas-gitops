@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-staging-media
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
+    targetRevision: "fix/k8s-minikube-yas-deploy"
+    path: "k8s/charts/media"
+    helm:
+      parameters:
+        - name: "backend.image.repository"
+          value: "nguyenmanhha/yas-media"
+        - name: "backend.image.tag"
+          value: "main"
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "yas-staging"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

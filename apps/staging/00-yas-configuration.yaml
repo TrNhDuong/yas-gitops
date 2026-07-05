@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-staging-configuration
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
+    targetRevision: "fix/k8s-minikube-yas-deploy"
+    path: "k8s/charts/yas-configuration"
+    helm:
+      parameters:
+        - name: "mediaApplicationConfig.yas.publicUrl"
+          value: "http://api.staging.yas.local.com/media"
+          forceString: true
+        - name: "paymentPaypalApplicationConfig.yas.public.url"
+          value: "http://storefront.staging.yas.local.com/complete-payment"
+          forceString: true
+        - name: "applicationConfig.spring.security.oauth2.resourceserver.jwt.issuer-uri"
+          value: "http://identity.yas.local.com/realms/Yas"
+          forceString: true
+        - name: "applicationConfig.springdoc.oauthflow.authorization-url"
+          value: "http://identity.yas.local.com/realms/Yas/protocol/openid-connect/auth"
+          forceString: true
+        - name: "applicationConfig.springdoc.oauthflow.token-url"
+          value: "http://identity.yas.local.com/realms/Yas/protocol/openid-connect/token"
+          forceString: true
+        - name: "backofficeBffExtraConfig.spring.security.oauth2.client.provider.keycloak.issuer-uri"
+          value: "http://identity.yas.local.com/realms/Yas"
+          forceString: true
+        - name: "storefrontBffExtraConfig.spring.security.oauth2.client.provider.keycloak.issuer-uri"
+          value: "http://identity.yas.local.com/realms/Yas"
+          forceString: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "yas-staging"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
