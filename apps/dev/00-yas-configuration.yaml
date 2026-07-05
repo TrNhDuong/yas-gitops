@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/yas-configuration"
     helm:
+      releaseName: "yas-configuration"
       parameters:
         - name: "mediaApplicationConfig.yas.publicUrl"
           value: "http://api.dev.yas.local.com/media"

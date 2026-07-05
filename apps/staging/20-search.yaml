@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/search"
     helm:
+      releaseName: "search"
       parameters:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-search"

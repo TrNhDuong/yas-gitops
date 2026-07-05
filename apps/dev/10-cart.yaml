@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/cart"
     helm:
+      releaseName: "cart"
       parameters:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-cart"

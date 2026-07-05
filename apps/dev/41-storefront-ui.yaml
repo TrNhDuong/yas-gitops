@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/storefront-ui"
     helm:
+      releaseName: "storefront-ui"
       parameters:
         - name: "ui.image.repository"
           value: "nguyenmanhha/yas-storefront"

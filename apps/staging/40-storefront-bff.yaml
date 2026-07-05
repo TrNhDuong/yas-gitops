@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/storefront-bff"
     helm:
+      releaseName: "storefront-bff"
       parameters:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-storefront-bff"

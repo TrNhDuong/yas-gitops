@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/backoffice-bff"
     helm:
+      releaseName: "backoffice-bff"
       parameters:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-backoffice-bff"

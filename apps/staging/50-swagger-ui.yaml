@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/swagger-ui"
     helm:
+      releaseName: "swagger-ui"
       parameters:
         - name: "ingress.enabled"
           value: "true"

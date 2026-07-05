@@ -12,6 +12,7 @@ spec:
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/order"
     helm:
+      releaseName: "order"
       parameters:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-order"
