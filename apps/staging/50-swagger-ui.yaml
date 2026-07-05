@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
+    repoURL: "https://github.com/Duong-Dung/yas_devops.git"
     targetRevision: "fix/k8s-minikube-yas-deploy"
     path: "k8s/charts/swagger-ui"
     helm:

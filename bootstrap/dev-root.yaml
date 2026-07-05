@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://github.com/TrNhDuong/yas-gitops.git"
+    repoURL: "https://github.com/Duong-Dung/yas-gitops.git"
     targetRevision: "main"
     path: "apps/dev"
   destination:
