@@ -4,7 +4,7 @@ Bộ file này dùng để tạo repo GitOps riêng cho đồ án YAS.
 
 ## Repo mặc định trong file
 
-- DevOps/Helm chart repo: `https://github.com/Duong-Dung/yas_devops.git`
+- DevOps/Helm chart repo: `https://github.com/TrNhDuong/yas_devops.git`
 - GitOps repo: `https://github.com/Duong-Dung/yas-gitops.git`
 - Chart branch hiện tại: `fix/k8s-minikube-yas-deploy`
 - Docker Hub username: `nguyenmanhha`
