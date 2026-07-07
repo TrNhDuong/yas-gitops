@@ -14,6 +14,9 @@ spec:
     helm:
       releaseName: "yas-configuration"
       parameters:
+        - name: "hosts.api"
+          value: "api.dev.yas.local.com"
+          forceString: true
         - name: "mediaApplicationConfig.yas.publicUrl"
           value: "http://api.dev.yas.local.com/media"
           forceString: true
