@@ -17,7 +17,7 @@ spec:
         - name: "ui.image.repository"
           value: "nguyenmanhha/yas-backoffice"
         - name: "ui.image.tag"
-          value: "4af0969a83fb900851268d35a692333c5938b1b2"
+          value: "aa2459cdeadb37cd4368d3c2c6a72d9ada512833"
         - name: "ui.ingress.enabled"
           value: "false"
   destination:
