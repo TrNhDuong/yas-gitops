@@ -17,7 +17,7 @@ spec:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-product"
         - name: "backend.image.tag"
-          value: "main"
+          value: "558aaf7281ed0585a83e9ca97b44b7cd040d411d"
   destination:
     server: "https://kubernetes.default.svc"
     namespace: "yas-dev"
