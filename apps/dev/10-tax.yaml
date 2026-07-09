@@ -17,7 +17,7 @@ spec:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-tax"
         - name: "backend.image.tag"
-          value: "558aaf7281ed0585a83e9ca97b44b7cd040d411d"
+          value: "691b4f5271617bb9b33740b570416ee02b89b0a5"
   destination:
     server: "https://kubernetes.default.svc"
     namespace: "yas-dev"
