@@ -17,7 +17,7 @@ spec:
         - name: "backend.image.repository"
           value: "nguyenmanhha/yas-sampledata"
         - name: "backend.image.tag"
-          value: "13e7845e2bbd1c7422c99489abe3939e978974d2"
+          value: "aa2459cdeadb37cd4368d3c2c6a72d9ada512833"
   destination:
     server: "https://kubernetes.default.svc"
     namespace: "yas-staging"
