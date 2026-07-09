@@ -17,7 +17,7 @@ spec:
         - name: "ui.image.repository"
           value: "nguyenmanhha/yas-storefront"
         - name: "ui.image.tag"
-          value: "main"
+          value: "558aaf7281ed0585a83e9ca97b44b7cd040d411d"
         - name: "ui.extraEnvs[0].name"
           value: "API_BASE_PATH"
         - name: "ui.extraEnvs[0].value"
