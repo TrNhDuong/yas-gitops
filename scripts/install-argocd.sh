@@ -1,37 +1,45 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-ARGOCD_NS="${ARGOCD_NS:-argocd}"
-INSTALL_MANIFEST="https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
+ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
+ARGOCD_MANIFEST_URL="${ARGOCD_MANIFEST_URL:-https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml}"
 
-echo "==> Create namespace ${ARGOCD_NS}"
-kubectl create namespace "${ARGOCD_NS}" --dry-run=client -o yaml | kubectl apply -f -
+command -v kubectl >/dev/null 2>&1 || {
+  echo "kubectl is required" >&2
+  exit 1
+}
 
-echo "==> Install/upgrade ArgoCD with server-side apply"
-kubectl apply --server-side --force-conflicts -n "${ARGOCD_NS}" -f "${INSTALL_MANIFEST}"
+kubectl create namespace "${ARGOCD_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
-echo "==> Configure ArgoCD resource tracking label"
-# Helm charts often use app.kubernetes.io/instance in Service selectors.
-# ArgoCD also uses this label by default, so use a separate tracking label to avoid breaking Helm selectors.
-kubectl patch cm argocd-cm -n "${ARGOCD_NS}" --type merge \
+# Server-side apply avoids the CRD annotation-size problem seen with client-side apply.
+kubectl apply --server-side --force-conflicts \
+  -n "${ARGOCD_NAMESPACE}" \
+  -f "${ARGOCD_MANIFEST_URL}"
+
+# This controller must be running for reconciliation, health assessment and auto-sync.
+kubectl scale statefulset argocd-application-controller \
+  -n "${ARGOCD_NAMESPACE}" \
+  --replicas=1
+
+kubectl patch configmap argocd-cm \
+  -n "${ARGOCD_NAMESPACE}" \
+  --type merge \
   -p '{"data":{"application.instanceLabelKey":"argocd.argoproj.io/instance"}}'
 
-echo "==> Restart ArgoCD components to reload config"
-kubectl rollout restart statefulset/argocd-application-controller -n "${ARGOCD_NS}" || true
-kubectl rollout restart deploy/argocd-server -n "${ARGOCD_NS}" || true
-kubectl rollout restart deploy/argocd-repo-server -n "${ARGOCD_NS}" || true
+for deployment in \
+  argocd-applicationset-controller \
+  argocd-dex-server \
+  argocd-notifications-controller \
+  argocd-redis \
+  argocd-repo-server \
+  argocd-server; do
+  kubectl rollout status "deployment/${deployment}" \
+    -n "${ARGOCD_NAMESPACE}" \
+    --timeout=300s
+done
 
-echo "==> Wait for ArgoCD pods"
-kubectl rollout status statefulset/argocd-application-controller -n "${ARGOCD_NS}" --timeout=300s || true
-kubectl rollout status deploy/argocd-server -n "${ARGOCD_NS}" --timeout=300s || true
-kubectl rollout status deploy/argocd-repo-server -n "${ARGOCD_NS}" --timeout=300s || true
-kubectl get pods -n "${ARGOCD_NS}"
+kubectl rollout status statefulset/argocd-application-controller \
+  -n "${ARGOCD_NAMESPACE}" \
+  --timeout=300s
 
-echo "==> Initial admin password"
-if kubectl get secret argocd-initial-admin-secret -n "${ARGOCD_NS}" >/dev/null 2>&1; then
-  kubectl get secret argocd-initial-admin-secret -n "${ARGOCD_NS}" \
-    -o jsonpath='{.data.password}' | base64 -d
-  echo
-else
-  echo "argocd-initial-admin-secret not found. It may have been removed after password change."
-fi
+kubectl get pods -n "${ARGOCD_NAMESPACE}"

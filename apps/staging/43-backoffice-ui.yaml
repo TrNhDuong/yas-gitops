@@ -4,28 +4,42 @@ metadata:
   name: yas-staging-backoffice-ui
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: '3'
+  labels:
+    app.kubernetes.io/part-of: yas
+    yas.dev/logical-environment: staging
+    yas.dev/source-branch: staging
 spec:
-  project: default
+  project: yas
   source:
-    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
-    targetRevision: "fix/k8s-minikube-yas-deploy"
-    path: "k8s/charts/backoffice-ui"
+    repoURL: https://github.com/TrNhDuong/yas_devops.git
+    targetRevision: staging
+    path: k8s/charts/backoffice-ui
     helm:
-      releaseName: "backoffice-ui"
+      releaseName: backoffice-ui
       parameters:
-        - name: "ui.image.repository"
-          value: "nguyenmanhha/yas-backoffice"
-        - name: "ui.image.tag"
-          value: "8da87551b484a8125166aa9289aa6e7b0267da47"
-        - name: "ui.ingress.enabled"
-          value: "false"
+      - name: ui.image.repository
+        value: nguyenmanhha/yas-backoffice
+      - name: ui.image.tag
+        value: 8da87551b484a8125166aa9289aa6e7b0267da47
+      - name: ui.ingress.enabled
+        value: 'false'
   destination:
-    server: "https://kubernetes.default.svc"
-    namespace: "yas-staging"
+    server: https://kubernetes.default.svc
+    namespace: yas-staging
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+      allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
+    - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  revisionHistoryLimit: 5

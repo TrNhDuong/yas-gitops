@@ -4,26 +4,40 @@ metadata:
   name: yas-staging-customer
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: '0'
+  labels:
+    app.kubernetes.io/part-of: yas
+    yas.dev/logical-environment: staging
+    yas.dev/source-branch: staging
 spec:
-  project: default
+  project: yas
   source:
-    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
-    targetRevision: "fix/k8s-minikube-yas-deploy"
-    path: "k8s/charts/customer"
+    repoURL: https://github.com/TrNhDuong/yas_devops.git
+    targetRevision: staging
+    path: k8s/charts/customer
     helm:
-      releaseName: "customer"
+      releaseName: customer
       parameters:
-        - name: "backend.image.repository"
-          value: "nguyenmanhha/yas-customer"
-        - name: "backend.image.tag"
-          value: "aa2459cdeadb37cd4368d3c2c6a72d9ada512833"
+      - name: backend.image.repository
+        value: nguyenmanhha/yas-customer
+      - name: backend.image.tag
+        value: aa2459cdeadb37cd4368d3c2c6a72d9ada512833
   destination:
-    server: "https://kubernetes.default.svc"
-    namespace: "yas-staging"
+    server: https://kubernetes.default.svc
+    namespace: yas-staging
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+      allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
+    - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  revisionHistoryLimit: 5

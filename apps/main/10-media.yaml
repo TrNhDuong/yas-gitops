@@ -1,19 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: yas-staging-media
+  name: yas-main-media
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: '0'
   labels:
     app.kubernetes.io/part-of: yas
-    yas.dev/logical-environment: staging
-    yas.dev/source-branch: staging
+    yas.dev/logical-environment: main
+    yas.dev/source-branch: main
 spec:
   project: yas
   source:
     repoURL: https://github.com/TrNhDuong/yas_devops.git
-    targetRevision: staging
+    targetRevision: main
     path: k8s/charts/media
     helm:
       releaseName: media
@@ -24,7 +24,7 @@ spec:
         value: aa2459cdeadb37cd4368d3c2c6a72d9ada512833
   destination:
     server: https://kubernetes.default.svc
-    namespace: yas-staging
+    namespace: yas-dev
   syncPolicy:
     automated:
       prune: true

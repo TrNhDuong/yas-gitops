@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-NAMESPACE="${1:-yas-staging}"
+NAMESPACE="${1:-}"
+if [[ "${NAMESPACE}" != "yas-dev" && "${NAMESPACE}" != "yas-staging" ]]; then
+  echo "Usage: ELASTIC_USERNAME=... ELASTIC_PASSWORD=... $0 yas-dev|yas-staging" >&2
+  exit 2
+fi
 
-kubectl get namespace "$NAMESPACE" >/dev/null || kubectl create namespace "$NAMESPACE"
-kubectl get secret elasticsearch-es-elastic-user -n elasticsearch >/dev/null
+: "${ELASTIC_USERNAME:?Set ELASTIC_USERNAME}"
+: "${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD}"
 
-ES_PASS=$(kubectl get secret elasticsearch-es-elastic-user -n elasticsearch   -o go-template='{{.data.elastic | base64decode}}')
-
-kubectl create secret generic search-elasticsearch-credentials   -n "$NAMESPACE"   --from-literal=username=elastic   --from-literal=password="$ES_PASS"   --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl get secret search-elasticsearch-credentials -n "$NAMESPACE"
+kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic search-elasticsearch-credentials \
+  -n "${NAMESPACE}" \
+  --from-literal=username="${ELASTIC_USERNAME}" \
+  --from-literal=password="${ELASTIC_PASSWORD}" \
+  --dry-run=client -o yaml | kubectl apply -f -

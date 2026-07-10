@@ -1,30 +1,32 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: yas-staging-media
+  name: yas-main-backoffice-ui
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '3'
   labels:
     app.kubernetes.io/part-of: yas
-    yas.dev/logical-environment: staging
-    yas.dev/source-branch: staging
+    yas.dev/logical-environment: main
+    yas.dev/source-branch: main
 spec:
   project: yas
   source:
     repoURL: https://github.com/TrNhDuong/yas_devops.git
-    targetRevision: staging
-    path: k8s/charts/media
+    targetRevision: main
+    path: k8s/charts/backoffice-ui
     helm:
-      releaseName: media
+      releaseName: backoffice-ui
       parameters:
-      - name: backend.image.repository
-        value: nguyenmanhha/yas-media
-      - name: backend.image.tag
-        value: aa2459cdeadb37cd4368d3c2c6a72d9ada512833
+      - name: ui.image.repository
+        value: nguyenmanhha/yas-backoffice
+      - name: ui.image.tag
+        value: 8da87551b484a8125166aa9289aa6e7b0267da47
+      - name: ui.ingress.enabled
+        value: 'false'
   destination:
     server: https://kubernetes.default.svc
-    namespace: yas-staging
+    namespace: yas-dev
   syncPolicy:
     automated:
       prune: true

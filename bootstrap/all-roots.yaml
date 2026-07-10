@@ -1,37 +1,99 @@
 apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: yas
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: yas
+spec:
+  description: YAS Project 2 - Argo CD main and staging
+  sourceRepos:
+    - https://github.com/TrNhDuong/yas-gitops.git
+    - https://github.com/TrNhDuong/yas_devops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    - server: https://kubernetes.default.svc
+      namespace: yas-dev
+    - server: https://kubernetes.default.svc
+      namespace: yas-staging
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  orphanedResources:
+    warn: true
+
+---
+apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: yas-dev-root
+  name: yas-main-root
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: yas
+    yas.dev/logical-environment: main
 spec:
-  project: default
+  project: yas
   source:
-    repoURL: "https://github.com/Duong-Dung/yas-gitops.git"
-    targetRevision: "main"
-    path: "apps/dev"
+    repoURL: https://github.com/TrNhDuong/yas-gitops.git
+    targetRevision: main
+    path: apps/main
+    directory:
+      recurse: false
   destination:
-    server: "https://kubernetes.default.svc"
+    server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  revisionHistoryLimit: 5
+
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: yas-staging-root
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: yas
+    yas.dev/logical-environment: staging
 spec:
-  project: default
+  project: yas
   source:
-    repoURL: "https://github.com/Duong-Dung/yas-gitops.git"
-    targetRevision: "main"
-    path: "apps/staging"
+    repoURL: https://github.com/TrNhDuong/yas-gitops.git
+    targetRevision: main
+    path: apps/staging
+    directory:
+      recurse: false
   destination:
-    server: "https://kubernetes.default.svc"
+    server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  revisionHistoryLimit: 5

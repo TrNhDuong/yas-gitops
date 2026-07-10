@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-kubectl port-forward svc/argocd-server -n argocd 8081:443 --address 127.0.0.1
+ADDRESS="${ADDRESS:-127.0.0.1}"
+LOCAL_PORT="${LOCAL_PORT:-8081}"
+
+exec kubectl port-forward service/argocd-server \
+  -n argocd \
+  "${LOCAL_PORT}:443" \
+  --address "${ADDRESS}"

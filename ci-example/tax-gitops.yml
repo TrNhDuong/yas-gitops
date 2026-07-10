@@ -1,0 +1,77 @@
+# Copy this file to yas_devops/.github/workflows/tax-gitops.yml and adjust
+# the build context if the tax Dockerfile is elsewhere.
+name: Tax CI and GitOps delivery
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - "tax/**"
+      - "k8s/charts/tax/**"
+      - ".github/workflows/tax-gitops.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SERVICE: tax
+  IMAGE_NAME: yas-tax
+  BUILD_CONTEXT: ./tax
+  GITOPS_REPOSITORY: TrNhDuong/yas-gitops
+
+jobs:
+  build-push-update-gitops:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set immutable image tag
+        id: vars
+        shell: bash
+        run: echo "tag=${GITHUB_REF_NAME}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BUILD_CONTEXT }}
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPOSITORY }}
+          ref: main
+          token: ${{ secrets.GITOPS_PAT }}
+          path: gitops
+
+      - name: Update only the matching environment
+        shell: bash
+        run: |
+          python gitops/scripts/update-image-tag.py \
+            --repo-root gitops \
+            --branch "${GITHUB_REF_NAME}" \
+            --service "${SERVICE}" \
+            --tag "${{ steps.vars.outputs.tag }}"
+
+      - name: Commit GitOps change
+        working-directory: gitops
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "apps/${GITHUB_REF_NAME}"
+          if git diff --cached --quiet; then
+            echo "No GitOps change"
+            exit 0
+          fi
+          git commit -m "deploy(${SERVICE}): ${GITHUB_REF_NAME} ${{ steps.vars.outputs.tag }}"
+          git push origin main

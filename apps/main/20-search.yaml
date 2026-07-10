@@ -1,19 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: yas-staging-search
+  name: yas-main-search
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: '1'
   labels:
     app.kubernetes.io/part-of: yas
-    yas.dev/logical-environment: staging
-    yas.dev/source-branch: staging
+    yas.dev/logical-environment: main
+    yas.dev/source-branch: main
 spec:
   project: yas
   source:
     repoURL: https://github.com/TrNhDuong/yas_devops.git
-    targetRevision: staging
+    targetRevision: main
     path: k8s/charts/search
     helm:
       releaseName: search
@@ -41,7 +41,7 @@ spec:
         value: password
   destination:
     server: https://kubernetes.default.svc
-    namespace: yas-staging
+    namespace: yas-dev
   syncPolicy:
     automated:
       prune: true

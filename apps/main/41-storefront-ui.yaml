@@ -1,30 +1,37 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: yas-staging-sampledata
+  name: yas-main-storefront-ui
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '2'
+    argocd.argoproj.io/sync-wave: '3'
   labels:
     app.kubernetes.io/part-of: yas
-    yas.dev/logical-environment: staging
-    yas.dev/source-branch: staging
+    yas.dev/logical-environment: main
+    yas.dev/source-branch: main
 spec:
   project: yas
   source:
     repoURL: https://github.com/TrNhDuong/yas_devops.git
-    targetRevision: staging
-    path: k8s/charts/sampledata
+    targetRevision: main
+    path: k8s/charts/storefront-ui
     helm:
-      releaseName: sampledata
+      releaseName: storefront-ui
       parameters:
-      - name: backend.image.repository
-        value: nguyenmanhha/yas-sampledata
-      - name: backend.image.tag
+      - name: ui.image.repository
+        value: nguyenmanhha/yas-storefront
+      - name: ui.image.tag
         value: 8da87551b484a8125166aa9289aa6e7b0267da47
+      - name: ui.extraEnvs[0].name
+        value: API_BASE_PATH
+      - name: ui.extraEnvs[0].value
+        value: http://storefront.dev.yas.local.com/api
+        forceString: true
+      - name: ui.ingress.enabled
+        value: 'false'
   destination:
     server: https://kubernetes.default.svc
-    namespace: yas-staging
+    namespace: yas-dev
   syncPolicy:
     automated:
       prune: true

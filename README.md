@@ -1,182 +1,307 @@
-# YAS GitOps / ArgoCD manifests
+# YAS GitOps – cấu hình Argo CD cho Project 2
 
-Bộ file này dùng để tạo repo GitOps riêng cho đồ án YAS.
+Bản này được chỉnh để đáp ứng trực tiếp tiêu chí:
 
-## Repo mặc định trong file
+> Argo CD phát hiện riêng branch `main` và `staging`; các Application đạt `Synced` và `Healthy`.
 
-- DevOps/Helm chart repo: `https://github.com/TrNhDuong/yas_devops.git`
-- GitOps repo: `https://github.com/Duong-Dung/yas-gitops.git`
-- Chart branch hiện tại: `fix/k8s-minikube-yas-deploy`
-- Docker Hub username: `nguyenmanhha`
-
-Sau khi branch `fix/k8s-minikube-yas-deploy` được merge vào `develop`, đổi toàn bộ `targetRevision` trong `apps/dev/*.yaml` và `apps/staging/*.yaml` thành `develop`.
-
-## Nội dung đã chỉnh trong bản này
-
-- Root app đã trỏ đúng repo GitOps: `https://github.com/Duong-Dung/yas-gitops.git`.
-- Script `install-argocd.sh` đã đổi sang `kubectl apply --server-side --force-conflicts` để tránh lỗi CRD annotation quá dài.
-- Script `install-argocd.sh` tự patch `argocd-cm` với `application.instanceLabelKey=argocd.argoproj.io/instance`.
-- Các app Helm đều có `helm.releaseName` để giữ release name như khi deploy thủ công bằng Helm.
-- Có script `configure-argocd-tracking.sh` nếu ArgoCD đã được cài trước đó và cần patch lại tracking label.
-- `search` có cấu hình Elasticsearch env và dùng Secret `search-elasticsearch-credentials` theo từng namespace.
-
-## Cấu trúc
+## 1. Kiến trúc cuối
 
 ```text
-yas-gitops-argocd/
-├── bootstrap/
-│   ├── dev-root.yaml
-│   ├── staging-root.yaml
-│   └── all-roots.yaml
-├── apps/
-│   ├── dev/
-│   └── staging/
-└── scripts/
+yas_devops/main
+  -> CI build image main-<sha>
+  -> commit tag vào yas-gitops/apps/main
+  -> Argo CD yas-main-*
+  -> namespace runtime yas-dev
+
+yas_devops/staging
+  -> CI build image staging-<sha>
+  -> commit tag vào yas-gitops/apps/staging
+  -> Argo CD yas-staging-*
+  -> namespace runtime yas-staging
 ```
 
-## Cài hoặc cập nhật ArgoCD
+GitOps repo chỉ cần branch `main`. Hai thư mục `apps/main` và `apps/staging` giữ trạng thái mong muốn của hai môi trường. Các child Application mới là nơi theo dõi hai branch khác nhau của source repo.
+
+`main` dùng lại namespace `yas-dev` hiện có để không phải chạy thêm một bản sao đầy đủ trong `yas-main`. Tên Application vẫn là `yas-main-*` và `targetRevision` vẫn là `main`, nên lúc chấm có thể nhìn rõ routing branch. Pipeline Helm trực tiếp phải dùng `yas-direct-dev` và `yas-direct-staging`, không dùng `yas-dev`/`yas-staging`, để tránh tranh quyền với Argo CD.
+
+## 2. Những lỗi của cấu hình cũ đã được sửa
+
+- GitOps repo URL đổi thành `https://github.com/TrNhDuong/yas-gitops.git`.
+- Không còn dùng `fix/k8s-minikube-yas-deploy` cho cả hai môi trường.
+- `apps/main/*` theo dõi `targetRevision: main`.
+- `apps/staging/*` theo dõi `targetRevision: staging`.
+- Application main đổi tên thành `yas-main-*`, không còn `yas-dev-*`.
+- Root apps là `yas-main-root` và `yas-staging-root`.
+- Auto-sync, prune, self-heal, retry và sync waves được giữ/bổ sung.
+- `helm.releaseName` được giữ nguyên để Service selector và Helm labels không đổi.
+- Script cài đặt luôn đưa `argocd-application-controller` về `1/1`.
+- Có migration script để bỏ Application cũ nhưng giữ nguyên workload đang chạy trong `yas-dev`.
+- Có script update image theo branch, tránh việc push `main` cập nhật nhầm staging hoặc ngược lại.
+
+## 3. Điều kiện bắt buộc trước khi apply
+
+Source repo `TrNhDuong/yas_devops` phải có cả hai branch `main` và `staging`.
+
+Hiện tại cần tạo `staging` từ `main` nếu branch này chưa tồn tại:
 
 ```bash
+cd yas_devops
+git switch main
+git pull origin main
+git switch -c staging
+git push -u origin staging
+```
+
+Kiểm tra:
+
+```bash
+./scripts/check-source-branches.sh
+```
+
+## 4. Đưa bộ file này lên GitOps repo
+
+Giải nén, sau đó thay nội dung repo `yas-gitops` bằng nội dung thư mục này:
+
+```bash
+cd yas-gitops
+git switch main
+git pull origin main
+
+# Copy nội dung bản fixed vào đây, rồi:
+git add .
+git commit -m "fix(argocd): route main and staging independently"
+git push origin main
+```
+
+Phải push lên GitHub trước khi apply root app, vì root app đọc manifest từ GitHub.
+
+## 5. Cài hoặc sửa Argo CD trên VM
+
+```bash
+chmod +x scripts/*.sh
 ./scripts/install-argocd.sh
 ```
 
-Nếu ArgoCD đã cài từ trước, vẫn có thể chạy script này để update bằng server-side apply và patch tracking label.
+Script này:
 
-Nếu chỉ muốn patch tracking label:
+1. Cài/cập nhật Argo CD bằng server-side apply.
+2. Scale `argocd-application-controller` thành 1 replica.
+3. Chờ tất cả component sẵn sàng.
+4. Đặt tracking label key ổn định.
 
-```bash
-./scripts/configure-argocd-tracking.sh
-```
-
-Lấy mật khẩu admin:
-
-```bash
-kubectl get secret argocd-initial-admin-secret -n argocd \
-  -o jsonpath='{.data.password}' | base64 -d
-echo
-```
-
-Mở UI từ VM:
+Kiểm tra bắt buộc:
 
 ```bash
-./scripts/port-forward-argocd.sh
+kubectl get sts argocd-application-controller -n argocd
 ```
 
-Trên Windows PowerShell mở tunnel:
-
-```powershell
-cd "C:\Users\MY MSI\Desktop\Project\DevOps\VM"
-ssh -i yas_key.pem -N -L 127.0.0.1:8081:127.0.0.1:8081 hd@20.24.209.134
-```
-
-Mở:
+Kết quả phải là:
 
 ```text
-https://localhost:8081
+NAME                            READY
+argocd-application-controller   1/1
 ```
 
-## Tạo secret Elasticsearch cho search
+## 6. Tạo secret cho Search
 
-Secret Kubernetes là theo namespace, nên phải tạo cho cả dev và staging nếu deploy cả hai:
+Secret là theo namespace nên cần tạo ở cả main runtime (`yas-dev`) và staging:
 
 ```bash
+export ELASTIC_USERNAME='<username>'
+export ELASTIC_PASSWORD='<password>'
+
 ./scripts/setup-search-secret.sh yas-dev
 ./scripts/setup-search-secret.sh yas-staging
 ```
 
-## Apply root app
+Không commit password thật vào Git.
 
-Chỉ staging:
+## 7. Migration cluster hiện tại
 
-```bash
-./scripts/apply-root-apps.sh staging
-```
+Cluster hiện tại có các Application `yas-dev-*` theo branch fix. Migration sẽ xóa các Application CR cũ nhưng bỏ finalizer trước, do đó Deployment/Service/Pod đang chạy trong `yas-dev` được giữ lại. Sau đó `yas-main-*` sẽ nhận quản lý các resource đó.
 
-Chỉ dev:
+Xem kế hoạch mà chưa thay đổi cluster:
 
 ```bash
-./scripts/apply-root-apps.sh dev
+./scripts/migrate-existing-cluster.sh
 ```
 
-Cả hai:
+Thực thi:
+
+```bash
+./scripts/migrate-existing-cluster.sh --yes
+```
+
+Theo dõi:
+
+```bash
+watch -n 2 'kubectl get applications -n argocd'
+```
+
+Không dùng `kubectl delete namespace yas-dev`.
+
+## 8. Apply mới từ đầu
+
+Nếu không cần migration:
 
 ```bash
 ./scripts/apply-root-apps.sh all
 ```
 
-## Kiểm tra ArgoCD
+Có thể apply riêng:
 
 ```bash
-kubectl get applications -n argocd
-kubectl describe application yas-staging-root -n argocd | tail -80
+./scripts/apply-root-apps.sh main
+./scripts/apply-root-apps.sh staging
 ```
 
-Nếu app `OutOfSync`, có thể refresh:
+## 9. Kết quả đúng để chụp khi chấm
 
 ```bash
-kubectl annotate applications -n argocd --all \
-  argocd.argoproj.io/refresh=hard --overwrite
+./scripts/check-apps.sh
 ```
 
-## Kiểm tra pods và endpoints
+Hoặc:
 
 ```bash
-kubectl get pods,svc,endpoints -n yas-dev
-kubectl get pods,svc,endpoints -n yas-staging
+kubectl get applications.argoproj.io -n argocd \
+  -o custom-columns='NAME:.metadata.name,BRANCH:.spec.source.targetRevision,NAMESPACE:.spec.destination.namespace,SYNC:.status.sync.status,HEALTH:.status.health.status'
 ```
 
-Các service backend như `product`, `cart`, `search`, `storefront-bff` phải có endpoints. Nếu pod Running nhưng endpoint `<none>`, kiểm tra `helm.releaseName` và ArgoCD tracking label.
-
-Test qua ingress từ VM:
-
-```bash
-curl -I -H "Host: storefront.dev.yas.local.com" http://$(minikube ip)/
-curl -I -H "Host: storefront.staging.yas.local.com" http://$(minikube ip)/
-curl -I -H "Host: backoffice.dev.yas.local.com" http://$(minikube ip)/
-curl -I -H "Host: backoffice.staging.yas.local.com" http://$(minikube ip)/
-```
-
-## Lưu ý về Helm release name
-
-Mỗi ArgoCD Application có tên dạng `yas-staging-product`, nhưng Helm release name cần giữ là `product` để không làm lệch selector label của Service/Pod.
-
-Ví dụ:
-
-```yaml
-source:
-  path: k8s/charts/product
-  helm:
-    releaseName: "product"
-```
-
-Nếu thiếu `releaseName`, Service có thể chọn sai label và endpoints bị `<none>` dù pod vẫn `Running`.
-
-## Lưu ý về search
-
-`search` cần secret `search-elasticsearch-credentials` trong từng namespace app. Nếu thiếu, pod sẽ bị:
+Kết quả child Application phải có dạng:
 
 ```text
-CreateContainerConfigError
-Error: secret "search-elasticsearch-credentials" not found
+yas-main-tax          main       yas-dev       Synced   Healthy
+yas-main-customer     main       yas-dev       Synced   Healthy
+yas-staging-tax       staging    yas-staging   Synced   Healthy
+yas-staging-customer  staging    yas-staging   Synced   Healthy
 ```
 
-Chạy lại:
-
-```bash
-./scripts/setup-search-secret.sh yas-staging
-kubectl rollout restart deploy/search -n yas-staging
-```
-
-## Lưu ý về PostgreSQL
-
-Nếu Keycloak hoặc backend báo lỗi connection tới `postgresql.postgres:5432`, kiểm tra service endpoint:
-
-```bash
-kubectl get pods,svc,endpoints -n postgres -o wide
-```
-
-Service `postgresql` phải có endpoint dạng:
+Hai root app đều theo dõi branch `main` của **GitOps repo**:
 
 ```text
-endpoints/postgresql   <pod-ip>:5432
+yas-main-root         main       argocd        Synced   Healthy
+yas-staging-root      main       argocd        Synced   Healthy
 ```
+
+Điều này đúng. Root app đọc hai thư mục trong GitOps repo; child app mới đọc branch `main` hoặc `staging` của source/chart repo.
+
+## 10. CI cập nhật image đúng môi trường
+
+Thư mục `ci-example` có workflow mẫu cho tax. Cần cấu hình trong repo `yas_devops`:
+
+- Variable `DOCKERHUB_USERNAME`.
+- Secret `DOCKERHUB_TOKEN`.
+- Secret `GITOPS_PAT` có quyền ghi repo `yas-gitops`.
+
+Copy workflow:
+
+```bash
+cp ci-example/tax-gitops.yml \
+  ../yas_devops/.github/workflows/tax-gitops.yml
+```
+
+Workflow dùng tag bất biến:
+
+```text
+main-<short-sha>
+staging-<short-sha>
+```
+
+Sau khi build, workflow clone GitOps repo và chạy:
+
+```bash
+python scripts/update-image-tag.py \
+  --branch main \
+  --service tax \
+  --tag main-a1b2c3d
+```
+
+hoặc:
+
+```bash
+python scripts/update-image-tag.py \
+  --branch staging \
+  --service tax \
+  --tag staging-d4e5f6a
+```
+
+Script chỉ sửa một file trong đúng thư mục branch tương ứng.
+
+## 11. Kịch bản demo Argo CD 2 điểm
+
+### Staging
+
+```bash
+cd yas_devops
+git switch staging
+# sửa nhỏ tax hoặc customer
+git add .
+git commit -m "demo: staging deployment"
+git push origin staging
+```
+
+Chứng minh theo thứ tự:
+
+```text
+GitHub Actions success
+Docker Hub có tag staging-<sha>
+yas-gitops chỉ đổi apps/staging/<service>.yaml
+Argo CD staging: OutOfSync -> Synced
+Health: Progressing -> Healthy
+yas-main-* không đổi
+```
+
+### Main
+
+```bash
+git switch main
+git merge staging
+git push origin main
+```
+
+Chứng minh:
+
+```text
+Docker Hub có tag main-<sha>
+yas-gitops chỉ đổi apps/main/<service>.yaml
+Argo CD main: OutOfSync -> Synced -> Healthy
+yas-staging-* không đổi
+```
+
+## 12. Pipeline không dùng Argo CD
+
+Rubric này là mục khác. Dùng workflow `ci-example/direct-cd-template.yml` và deploy trực tiếp bằng Helm vào:
+
+```text
+yas-direct-dev
+yas-direct-staging
+```
+
+Không deploy trực tiếp vào `yas-dev` hoặc `yas-staging`, vì Argo CD đang self-heal hai namespace đó.
+
+## 13. Truy cập UI
+
+Trên VM:
+
+```bash
+./scripts/port-forward-argocd.sh
+```
+
+Từ máy cá nhân tạo SSH tunnel tới cổng 8081 trên VM, sau đó mở:
+
+```text
+https://localhost:8081
+```
+
+## 14. Khi Application không Healthy
+
+Xem trạng thái thật sau khi controller đã chạy:
+
+```bash
+kubectl describe application yas-staging-tax -n argocd
+kubectl get pods -n yas-staging
+kubectl get events -n yas-staging --sort-by=.lastTimestamp | tail -50
+```
+
+Application `Synced` nhưng pod `0/1` thường sẽ chuyển `Progressing` hoặc `Degraded` sau khi controller reconcile. Sửa readiness/dependency của workload, không chỉnh giả health trong Argo CD.

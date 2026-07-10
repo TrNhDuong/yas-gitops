@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: yas-staging-root
+  name: yas-main-root
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: yas
-    yas.dev/logical-environment: staging
+    yas.dev/logical-environment: main
 spec:
   project: yas
   source:
     repoURL: https://github.com/TrNhDuong/yas-gitops.git
     targetRevision: main
-    path: apps/staging
+    path: apps/main
     directory:
       recurse: false
   destination:

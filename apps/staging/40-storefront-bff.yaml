@@ -4,31 +4,45 @@ metadata:
   name: yas-staging-storefront-bff
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: '3'
+  labels:
+    app.kubernetes.io/part-of: yas
+    yas.dev/logical-environment: staging
+    yas.dev/source-branch: staging
 spec:
-  project: default
+  project: yas
   source:
-    repoURL: "https://github.com/TrNhDuong/yas_devops.git"
-    targetRevision: "fix/k8s-minikube-yas-deploy"
-    path: "k8s/charts/storefront-bff"
+    repoURL: https://github.com/TrNhDuong/yas_devops.git
+    targetRevision: staging
+    path: k8s/charts/storefront-bff
     helm:
-      releaseName: "storefront-bff"
+      releaseName: storefront-bff
       parameters:
-        - name: "backend.image.repository"
-          value: "nguyenmanhha/yas-storefront-bff"
-        - name: "backend.image.tag"
-          value: "8da87551b484a8125166aa9289aa6e7b0267da47"
-        - name: "backend.ingress.enabled"
-          value: "true"
-        - name: "backend.ingress.host"
-          value: "storefront.staging.yas.local.com"
-          forceString: true
+      - name: backend.image.repository
+        value: nguyenmanhha/yas-storefront-bff
+      - name: backend.image.tag
+        value: 8da87551b484a8125166aa9289aa6e7b0267da47
+      - name: backend.ingress.enabled
+        value: 'true'
+      - name: backend.ingress.host
+        value: storefront.staging.yas.local.com
+        forceString: true
   destination:
-    server: "https://kubernetes.default.svc"
-    namespace: "yas-staging"
+    server: https://kubernetes.default.svc
+    namespace: yas-staging
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+      allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
+    - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+  revisionHistoryLimit: 5
