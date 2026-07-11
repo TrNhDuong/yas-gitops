@@ -19,9 +19,9 @@ spec:
       releaseName: sampledata
       parameters:
       - name: backend.image.repository
-        value: nguyenmanhha/yas-sampledata
+        value: "nguyenmanhha/yas-sampledata"
       - name: backend.image.tag
-        value: 8da87551b484a8125166aa9289aa6e7b0267da47
+        value: "ebd7561f9b3609c21d2da775c15d8ee64cebe330"
   destination:
     server: https://kubernetes.default.svc
     namespace: yas-staging
