@@ -19,9 +19,9 @@ spec:
       releaseName: product
       parameters:
       - name: backend.image.repository
-        value: nguyenmanhha/yas-product
+        value: "nguyenmanhha/yas-product"
       - name: backend.image.tag
-        value: 3ee27e4b250bcc2003726930f51149defda2bb28
+        value: "ebd7561f9b3609c21d2da775c15d8ee64cebe330"
   destination:
     server: https://kubernetes.default.svc
     namespace: yas-dev
