@@ -8,12 +8,12 @@ metadata:
   labels:
     app.kubernetes.io/part-of: yas
     yas.dev/logical-environment: staging
-    yas.dev/source-branch: staging
+    yas.dev/release-channel: git-tag
 spec:
   project: yas
   source:
     repoURL: https://github.com/TrNhDuong/yas_devops.git
-    targetRevision: staging
+    targetRevision: main
     path: k8s/charts/storefront-ui
     helm:
       releaseName: storefront-ui

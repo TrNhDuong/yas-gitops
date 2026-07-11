@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: yas
 spec:
-  description: YAS Project 2 - Argo CD main and staging
+  description: YAS Project 2 - dev from main and staging from release tags
   sourceRepos:
     - https://github.com/TrNhDuong/yas-gitops.git
     - https://github.com/TrNhDuong/yas_devops.git

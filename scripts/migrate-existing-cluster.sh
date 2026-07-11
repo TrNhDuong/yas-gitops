@@ -7,12 +7,13 @@ CONFIRM="${1:-}"
 if [[ "${CONFIRM}" != "--yes" ]]; then
   cat <<'MSG'
 This migration will:
-  1. Preserve Kubernetes workloads already running in namespace yas-dev.
+  1. Keep workloads already running in yas-dev and yas-staging.
   2. Remove legacy Argo CD Application objects named yas-dev-* and yas-dev-root.
-  3. Apply yas-main-root, whose child apps track source branch main and reuse yas-dev.
-  4. Update yas-staging-root so child apps track source branch staging.
+  3. Apply yas-main-root: source main -> namespace yas-dev.
+  4. Apply yas-staging-root: bootstrap from main, then release tags vX.Y.Z.
 
-No Deployment, Service or Pod in yas-dev is intentionally deleted.
+Application finalizers are removed before deletion, so existing Deployments,
+Services and Pods are not intentionally cascaded.
 Run again with --yes to continue.
 MSG
   exit 0
@@ -21,8 +22,6 @@ fi
 kubectl scale sts argocd-application-controller -n argocd --replicas=1
 kubectl rollout status sts/argocd-application-controller -n argocd --timeout=300s
 
-# Remove finalizers before deleting legacy Application CRs so current yas-dev
-# workloads remain available and can be adopted by yas-main-* applications.
 mapfile -t legacy_apps < <(
   kubectl get applications.argoproj.io -n argocd -o name \
     | sed 's#application.argoproj.io/##' \
@@ -34,7 +33,7 @@ for app in "${legacy_apps[@]}"; do
     --type merge \
     -p '{"metadata":{"finalizers":[]}}' >/dev/null || true
   kubectl delete application "${app}" -n argocd --ignore-not-found
- done
+done
 
 kubectl apply -f "${ROOT_DIR}/bootstrap/all-roots.yaml"
 
