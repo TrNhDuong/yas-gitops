@@ -19,9 +19,9 @@ spec:
       releaseName: tax
       parameters:
       - name: backend.image.repository
-        value: nguyenmanhha/yas-tax
+        value: "nguyenmanhha/yas-tax"
       - name: backend.image.tag
-        value: 8da87551b484a8125166aa9289aa6e7b0267da47
+        value: "59f86e7f3d7281cc61d5f26896af8ef8726e1a15"
   destination:
     server: https://kubernetes.default.svc
     namespace: yas-dev
